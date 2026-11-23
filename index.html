@@ -1,0 +1,493 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="icon" href="data:,">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DevKart — laptops for developers</title>
+<style>
+  :root {
+    --bg: #f8f9fb; --card: #fff; --ink: #1f2430; --muted: #5f6675;
+    --blue: #1a73e8; --green: #188038; --red: #d93025; --yellow: #f9ab00;
+    --line: #e3e6ec;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 16px/1.45 "Google Sans", Roboto, Arial, sans-serif; background: var(--bg); color: var(--ink); }
+  header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 28px; background: #fff; border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 5; }
+  .logo { font-weight: 700; font-size: 22px; }
+  .logo span { color: var(--blue); }
+  .status { font-size: 13px; padding: 6px 12px; border-radius: 999px; background: #fce8e6; color: var(--red); }
+  .status.on { background: #e6f4ea; color: var(--green); }
+  .cartbtn { font-weight: 600; padding: 8px 14px; border: 1px solid var(--line); border-radius: 999px; background: #fff; }
+  main { display: grid; grid-template-columns: 1fr 360px; gap: 24px; padding: 24px 28px; max-width: 1400px; margin: 0 auto; }
+  @media (max-width: 1000px) { main { grid-template-columns: 1fr; } }
+
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 18px; }
+  h2 { font-size: 15px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 12px; }
+
+  #ask { display: flex; gap: 8px; }
+  #ask input { flex: 1; }
+  input, select, button { font: inherit; }
+  input, select { padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: #fff; }
+  button { cursor: pointer; padding: 10px 16px; border-radius: 10px; border: 0; background: var(--blue); color: #fff; font-weight: 600; }
+  button.ghost { background: #fff; color: var(--blue); border: 1px solid var(--line); }
+  .hint { font-size: 13px; color: var(--muted); margin-top: 6px; min-height: 18px; }
+
+  #search { display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 8px; margin-top: 14px; }
+  #search:tool-form-active { outline: 3px solid var(--yellow); outline-offset: 6px; border-radius: 10px; }
+  #search button:tool-submit-active { background: var(--yellow); color: #000; }
+
+  #grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 16px; margin-top: 18px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 6px; transition: box-shadow .2s, transform .2s; }
+  .card.flash { box-shadow: 0 0 0 3px var(--yellow); transform: translateY(-2px); }
+  .card .img { height: 90px; border-radius: 10px; display: grid; place-items: center; font-size: 40px; background: #eef3fd; }
+  .card h3 { font-size: 16px; margin: 4px 0 0; }
+  .card .price { font-weight: 700; font-size: 18px; }
+  .card .spec { font-size: 13px; color: var(--muted); }
+  .card .tags { display: flex; flex-wrap: wrap; gap: 4px; }
+  .tag { font-size: 11px; padding: 2px 8px; border-radius: 999px; background: #f1f3f4; }
+  .card button { margin-top: auto; }
+  .empty { color: var(--muted); padding: 30px; text-align: center; }
+
+  aside { display: flex; flex-direction: column; gap: 16px; }
+  #tools li { font-family: ui-monospace, Menlo, monospace; font-size: 13px; }
+  #tools .ro { color: var(--green); }
+  #tools .cq { color: var(--red); }
+  #tools { list-style: none; padding: 0; margin: 0; }
+  #tools li { display: grid; grid-template-columns: 92px 1fr; align-items: start; gap: 8px; margin-bottom: 8px; }
+  #tools li .type { justify-self: start; }
+  /* Badge that says how each tool is exposed to agents */
+  .type { font: 600 10px/1 "Google Sans", Roboto, Arial, sans-serif; letter-spacing: .06em; text-transform: uppercase; padding: 4px 7px; border-radius: 999px; }
+  .type.declarative { background: #e8f0fe; color: #1967d2; }
+  .type.imperative { background: #f3e8fd; color: #8430ce; }
+  .legend { font-size: 12px; color: var(--muted); margin: 10px 0 0; line-height: 1.6; }
+  .formtag { display: flex; align-items: center; gap: 8px; margin-top: 16px; font-size: 13px; color: var(--muted); }
+  #log { list-style: none; padding: 0; margin: 0; max-height: 360px; overflow: auto; font-size: 13px; }
+  #log li { padding: 8px 10px; border-radius: 8px; margin-bottom: 6px; background: #f6f8fc; font-family: ui-monospace, Menlo, monospace; white-space: pre-wrap; word-break: break-word; }
+  #log li.agent { background: #fef7e0; }
+  #log li.err { background: #fce8e6; }
+  #cart ul { padding-left: 18px; margin: 0 0 10px; }
+  #cart .total { font-weight: 700; }
+
+  dialog { border: 0; border-radius: 16px; padding: 24px; max-width: 420px; box-shadow: 0 20px 60px rgba(0,0,0,.25); }
+  dialog::backdrop { background: rgba(20,24,32,.45); }
+  dialog menu { display: flex; justify-content: flex-end; gap: 8px; padding: 0; margin: 18px 0 0; }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">Dev<span>Kart</span></div>
+  <div id="status" class="status">WebMCP: checking…</div>
+  <div class="cartbtn" id="cartCount">Cart · 0</div>
+</header>
+
+<main>
+  <section>
+    <div class="panel">
+      <h2>Describe what you need (Chrome Built-in AI)</h2>
+      <form id="ask">
+        <input id="askText" placeholder="I need a laptop for React and full-stack work under ₹70,000"
+               value="I need a laptop for React and full-stack development. My budget is ₹70,000.">
+        <button type="submit">Understand</button>
+      </form>
+      <div class="hint" id="askHint"></div>
+
+      <!--
+        DECLARATIVE WebMCP tool
+        ───────────────────────
+        No JavaScript is needed to expose this form to an agent. The browser reads
+        these attributes and turns the form into a tool called "search_products":
+          toolname              → the tool's name the agent sees
+          tooldescription       → tells the agent what the tool does and when to use it
+          toolparamdescription  → describes each input (it becomes the tool's input schema)
+          toolautosubmit        → the agent may submit the form without the user clicking
+        While an agent fills it, Chrome applies :tool-form-active (yellow outline in the CSS above).
+      -->
+      <div class="formtag"><span class="type declarative">Declarative</span> This form is the <code>search_products</code> tool</div>
+      <form id="search" toolautosubmit
+            toolname="search_products"
+            tooldescription="Search the DevKart laptop catalog. Returns matching laptops with id, name, price in INR, RAM, storage and best-fit use cases.">
+        <input name="query" placeholder="Keyword (e.g. thinkpad, oled)"
+               toolparamdescription="Optional free-text keyword matched against laptop name and brand.">
+        <input name="maxPrice" type="number" min="0" step="1000" placeholder="Max ₹"
+               toolparamdescription="Maximum price in Indian rupees, as a plain number such as 70000.">
+        <select name="useCase" toolparamdescription="What the laptop will mainly be used for.">
+          <option value="">Any use</option>
+          <option value="development">Development</option>
+          <option value="design">Design</option>
+          <option value="gaming">Gaming</option>
+          <option value="office">Office</option>
+        </select>
+        <button type="submit">Search</button>
+      </form>
+    </div>
+
+    <div id="grid"></div>
+  </section>
+
+  <aside>
+    <div class="panel">
+      <h2>Tools this page exposes</h2>
+      <!-- Filled in by drawToolList(): one row per WebMCP tool, with its type -->
+      <ul id="tools"></ul>
+      <p class="legend"><span class="type declarative">Declarative</span> an HTML &lt;form&gt; with tool attributes<br>
+      <span class="type imperative">Imperative</span> JavaScript <code>document.modelContext.registerTool()</code></p>
+    </div>
+    <div class="panel" id="cart">
+      <h2>Cart</h2>
+      <div id="cartBody"><p class="hint">Empty</p></div>
+    </div>
+    <div class="panel">
+      <h2>Agent activity</h2>
+      <!-- Every tool call the agent makes is logged here, tagged declarative or imperative -->
+      <ul id="log"></ul>
+    </div>
+  </aside>
+</main>
+
+<dialog id="confirm">
+  <h3 style="margin-top:0">Place this order?</h3>
+  <div id="confirmBody"></div>
+  <menu>
+    <button class="ghost" value="no" id="confirmNo">Cancel</button>
+    <button value="yes" id="confirmYes">Place order</button>
+  </menu>
+</dialog>
+
+<script type="module">
+const CATALOG = [
+  { id: "lp-101", name: "Lenovo IdeaPad Slim 5", brand: "Lenovo", price: 62990, ram: 16, storage: 512, cpu: "Ryzen 7 7730U", weightKg: 1.46, uses: ["development", "office"], emoji: "💻" },
+  { id: "lp-102", name: "ASUS Vivobook 16X", brand: "ASUS", price: 58990, ram: 16, storage: 512, cpu: "Core i5-13500H", weightKg: 1.8, uses: ["development", "design"], emoji: "💻" },
+  { id: "lp-103", name: "HP Pavilion Plus 14 OLED", brand: "HP", price: 69990, ram: 16, storage: 1024, cpu: "Core Ultra 5 125H", weightKg: 1.4, uses: ["development", "design"], emoji: "✨" },
+  { id: "lp-104", name: "Acer Aspire Lite", brand: "Acer", price: 34990, ram: 8, storage: 512, cpu: "Core i3-1215U", weightKg: 1.6, uses: ["office"], emoji: "📄" },
+  { id: "lp-105", name: "Apple MacBook Air M2", brand: "Apple", price: 79990, ram: 8, storage: 256, cpu: "Apple M2", weightKg: 1.24, uses: ["development", "design", "office"], emoji: "🍎" },
+  { id: "lp-106", name: "Lenovo ThinkPad E14", brand: "Lenovo", price: 67490, ram: 16, storage: 512, cpu: "Core i5-1335U", weightKg: 1.41, uses: ["development", "office"], emoji: "⌨️" },
+  { id: "lp-107", name: "MSI Thin GF63", brand: "MSI", price: 54990, ram: 8, storage: 512, cpu: "Core i5-12450H + RTX 2050", weightKg: 1.86, uses: ["gaming"], emoji: "🎮" },
+  { id: "lp-108", name: "Dell Inspiron 14 Plus", brand: "Dell", price: 84990, ram: 16, storage: 1024, cpu: "Core Ultra 7 155H", weightKg: 1.6, uses: ["development", "design"], emoji: "🚀" },
+];
+const inr = n => "₹" + n.toLocaleString("en-IN");
+const byId = id => CATALOG.find(p => p.id === id);
+const summary = p => ({ id: p.id, name: p.name, priceInr: p.price, ramGb: p.ram, storageGb: p.storage, cpu: p.cpu, weightKg: p.weightKg, useCases: p.uses });
+
+const cart = new Map();
+let orderCount = 0;
+
+const $ = s => document.querySelector(s);
+const grid = $("#grid"), logEl = $("#log");
+
+// Adds a line to "Agent activity". `type` ("declarative" | "imperative") adds a badge.
+function log(text, kind = "", type = "") {
+  const li = document.createElement("li");
+  li.className = kind;
+  if (type) {
+    const badge = document.createElement("span");
+    badge.className = `type ${type}`;
+    badge.textContent = type;
+    li.append(badge, " ");
+  }
+  li.append(text);
+  logEl.prepend(li);
+}
+
+function search({ query = "", maxPrice, useCase = "" } = {}) {
+  const q = String(query).trim().toLowerCase();
+  const max = Number(maxPrice) || Infinity;
+  return CATALOG.filter(p =>
+    p.price <= max &&
+    (!useCase || p.uses.includes(useCase)) &&
+    (!q || (p.name + " " + p.brand).toLowerCase().includes(q))
+  ).sort((a, b) => a.price - b.price);
+}
+
+function render(list) {
+  grid.innerHTML = list.length ? "" : `<div class="empty">No laptops match.</div>`;
+  for (const p of list) {
+    const el = document.createElement("article");
+    el.className = "card";
+    el.id = "card-" + p.id;
+    el.innerHTML = `
+      <div class="img">${p.emoji}</div>
+      <h3>${p.name}</h3>
+      <div class="price">${inr(p.price)}</div>
+      <div class="spec">${p.cpu} · ${p.ram} GB · ${p.storage >= 1024 ? "1 TB" : p.storage + " GB"} · ${p.weightKg} kg</div>
+      <div class="tags">${p.uses.map(u => `<span class="tag">${u}</span>`).join("")}</div>
+      <button class="ghost">Add to cart</button>`;
+    el.querySelector("button").onclick = () => addToCart(p.id, 1);
+    grid.append(el);
+  }
+}
+
+function flash(id) {
+  const el = document.getElementById("card-" + id);
+  if (!el) return;
+  el.scrollIntoView({ behavior: "smooth", block: "center" });
+  el.classList.add("flash");
+  setTimeout(() => el.classList.remove("flash"), 1600);
+}
+
+function cartTotal() {
+  let t = 0;
+  for (const [id, qty] of cart) t += byId(id).price * qty;
+  return t;
+}
+
+function renderCart() {
+  const n = [...cart.values()].reduce((a, b) => a + b, 0);
+  $("#cartCount").textContent = `Cart · ${n}`;
+  if (!n) { $("#cartBody").innerHTML = `<p class="hint">Empty</p>`; return; }
+  $("#cartBody").innerHTML = `<ul>${[...cart].map(([id, q]) => `<li>${byId(id).name} × ${q}</li>`).join("")}</ul>
+    <div class="total">Total ${inr(cartTotal())}</div>`;
+}
+
+function addToCart(productId, quantity = 1) {
+  const p = byId(productId);
+  if (!p) throw new Error(`Unknown productId "${productId}". Call search_products to get valid ids.`);
+  const qty = Math.max(1, Math.min(5, Math.floor(Number(quantity) || 1)));
+  cart.set(p.id, (cart.get(p.id) || 0) + qty);
+  renderCart();
+  flash(p.id);
+  syncCheckoutTool();
+  return `Added ${qty} × ${p.name} to the cart. Cart total is ${inr(cartTotal())}.`;
+}
+
+function askToConfirm() {
+  const dlg = $("#confirm");
+  $("#confirmBody").innerHTML = `<ul>${[...cart].map(([id, q]) => `<li>${byId(id).name} × ${q}</li>`).join("")}</ul><b>Total ${inr(cartTotal())}</b>`;
+  return new Promise(resolve => {
+    $("#confirmYes").onclick = () => { dlg.close(); resolve(true); };
+    $("#confirmNo").onclick = () => { dlg.close(); resolve(false); };
+    dlg.showModal();
+  });
+}
+
+// ─── WebMCP entry point ───────────────────────────────────────────────
+// document.modelContext exists only when WebMCP is on (origin trial, or
+// chrome://flags/#enable-webmcp-testing). Everything below checks for it.
+const mc = document.modelContext;
+const statusEl = $("#status");
+const exposed = new Map(); // tool name → { note, cls, type } for the on-page list
+
+function listTool(name, note, cls, type) {
+  exposed.set(name, { note, cls, type });
+  drawToolList();
+}
+function unlistTool(name) { exposed.delete(name); drawToolList(); }
+function drawToolList() {
+  $("#tools").innerHTML = [...exposed].map(([n, { note, cls, type }]) =>
+    `<li><span class="type ${type}">${type}</span><span><span class="${cls}">${n}</span><br><small>${note}</small></span></li>`).join("");
+}
+
+// Wraps an imperative tool's execute() so each agent call is logged on the page.
+// WebMCP tools return a string to the agent, so objects are JSON-encoded.
+function wrap(name, fn) {
+  return async (args = {}) => {
+    log(`🤖 ${name}(${JSON.stringify(args)})`, "agent", "imperative");
+    try {
+      const out = await fn(args);
+      log(`↳ ${typeof out === "string" ? out : JSON.stringify(out).slice(0, 300)}`);
+      return typeof out === "string" ? out : JSON.stringify(out);
+    } catch (e) {
+      log(`↳ error: ${e.message}`, "err");
+      return `Error: ${e.message}`;
+    }
+  };
+}
+
+// IMPERATIVE registration: hands the browser a tool object
+//   { name, description, inputSchema (JSON Schema), annotations, execute }.
+// Passing { signal } lets us unregister the tool later with AbortController.abort().
+async function register(tool, note, cls, signal) {
+  if (!mc) { listTool(tool.name, note + " (not registered)", cls, "imperative"); return; }
+  await mc.registerTool({ ...tool, execute: wrap(tool.name, tool.execute) }, signal ? { signal } : undefined);
+  listTool(tool.name, note, cls, "imperative");
+}
+
+// IMPERATIVE + dynamic: "checkout" only exists while the cart has items.
+// Registering a tool only when it can be used keeps the agent from trying it too early.
+// consequentialHint: true → a real-world effect (an order), so the agent/browser
+// should ask the user first; the page also shows its own confirmation dialog.
+let checkoutCtl = null;
+async function syncCheckoutTool() {
+  const shouldExist = cart.size > 0;
+  if (shouldExist && !checkoutCtl) {
+    checkoutCtl = new AbortController();
+    await register({
+      name: "checkout",
+      description: "Place the order for everything currently in the cart. The user is shown the order and must approve it on the page.",
+      inputSchema: { type: "object", properties: {} },
+      annotations: { readOnlyHint: false, consequentialHint: true },
+      execute: async () => {
+        const ok = await askToConfirm();
+        if (!ok) return "The user cancelled the order. Nothing was purchased.";
+        const total = cartTotal();
+        cart.clear();
+        renderCart();
+        syncCheckoutTool();
+        orderCount += 1;
+        return `Order DK-${1000 + orderCount} placed for ${inr(total)}.`;
+      },
+    }, "place order (asks the user)", "cq", checkoutCtl.signal);
+    log("➕ checkout tool registered (cart has items)", "", "imperative");
+  } else if (!shouldExist && checkoutCtl) {
+    checkoutCtl.abort();
+    checkoutCtl = null;
+    unlistTool("checkout");
+    log("➖ checkout tool unregistered (cart empty)", "", "imperative");
+  }
+}
+
+// ─── DECLARATIVE tool handler ─────────────────────────────────────────
+// The form above is already a tool (see its HTML attributes). This listener runs
+// for both a human click and an agent call:
+//   e.agentInvoked  → true when an agent submitted the form
+//   e.respondWith() → sends the tool result back to the agent (instead of navigating)
+$("#search").addEventListener("submit", e => {
+  e.preventDefault();
+  const f = new FormData(e.target);
+  const args = Object.fromEntries(f);
+  const results = search(args);
+  render(results);
+  if (e.agentInvoked) {
+    log(`🤖 search_products(${JSON.stringify(args)})`, "agent", "declarative");
+    e.respondWith(Promise.resolve(JSON.stringify(results.map(summary))));
+    log(`↳ ${results.length} result(s)`);
+  }
+});
+if ($("#search").hasAttribute("toolname")) listTool("search_products", "HTML &lt;form&gt;, read-only", "ro", "declarative");
+
+// ─── IMPERATIVE tools ─────────────────────────────────────────────────
+// Registered from JavaScript, reusing the functions the UI already calls.
+// annotations.readOnlyHint: true → only reads data, safe for the agent to call freely.
+await register({
+  name: "get_product_details",
+  description: "Get full details for one laptop by its id (from search_products).",
+  inputSchema: { type: "object", properties: { productId: { type: "string", description: "Laptop id such as lp-101." } }, required: ["productId"] },
+  annotations: { readOnlyHint: true },
+  execute: async ({ productId }) => {
+    const p = byId(productId);
+    if (!p) throw new Error(`Unknown productId "${productId}".`);
+    flash(p.id);
+    return summary(p);
+  },
+}, "read-only", "ro");
+
+await register({
+  name: "compare_products",
+  description: "Compare two to four laptops side by side on price, RAM, storage, CPU and weight.",
+  inputSchema: { type: "object", properties: { productIds: { type: "array", items: { type: "string" }, minItems: 2, maxItems: 4 } }, required: ["productIds"] },
+  annotations: { readOnlyHint: true },
+  execute: async ({ productIds }) => {
+    const items = (productIds || []).map(byId).filter(Boolean);
+    if (items.length < 2) throw new Error("Pass at least two valid product ids.");
+    render(items);
+    return items.map(summary);
+  },
+}, "read-only", "ro");
+
+await register({
+  name: "add_to_cart",
+  description: "Add a laptop to the shopping cart. Does not place an order.",
+  inputSchema: { type: "object", properties: { productId: { type: "string" }, quantity: { type: "integer", minimum: 1, maximum: 5, description: "Defaults to 1." } }, required: ["productId"] },
+  annotations: { readOnlyHint: false }, // changes state (the cart), but nothing irreversible
+  execute: async ({ productId, quantity }) => addToCart(productId, quantity),
+}, "changes cart", "");
+
+await register({
+  name: "view_cart",
+  description: "List the items currently in the cart and the total in INR.",
+  inputSchema: { type: "object", properties: {} },
+  annotations: { readOnlyHint: true },
+  execute: async () => cart.size
+    ? { items: [...cart].map(([id, q]) => ({ ...summary(byId(id)), quantity: q })), totalInr: cartTotal() }
+    : "The cart is empty.",
+}, "read-only", "ro");
+
+if (mc) {
+  statusEl.textContent = "WebMCP: tools registered";
+  statusEl.classList.add("on");
+  // Fired when an agent starts using a tool (toolactivated) or abandons it (toolcancel).
+  // Chrome sends these for every tool, so the badge comes from our own tool list.
+  const typeOf = name => exposed.get(name)?.type ?? "";
+  mc.addEventListener?.("toolactivated", e => log(`⚡ toolactivated: ${e.toolName}`, "", typeOf(e.toolName)));
+  mc.addEventListener?.("toolcancel", e => log(`✋ toolcancel: ${e.toolName}`, "", typeOf(e.toolName)));
+} else {
+  statusEl.textContent = "WebMCP off — enable chrome://flags/#enable-webmcp-testing";
+}
+
+// Chrome Built-in AI: turn a free-text request into validated search criteria.
+const askHint = $("#askHint");
+const CRITERIA = {
+  type: "object",
+  properties: {
+    maxPrice: { type: "number" },
+    useCase: { type: "string", enum: ["development", "design", "gaming", "office", ""] },
+    query: { type: "string" },
+  },
+  required: ["maxPrice", "useCase", "query"],
+};
+
+function validate(c) {
+  const out = { query: "", maxPrice: "", useCase: "" };
+  const price = Number(c.maxPrice);
+  if (Number.isFinite(price) && price >= 10000 && price <= 500000) out.maxPrice = Math.round(price);
+  if (["development", "design", "gaming", "office"].includes(c.useCase)) out.useCase = c.useCase;
+  if (typeof c.query === "string" && c.query.length <= 30) out.query = c.query;
+  return out;
+}
+
+function fallbackParse(text) {
+  const t = text.toLowerCase().replace(/,/g, "");
+  const k = t.match(/(\d+(?:\.\d+)?)\s*k\b/);
+  const n = t.match(/₹?\s*(\d{4,7})/);
+  const maxPrice = k ? Number(k[1]) * 1000 : n ? Number(n[1]) : "";
+  const useCase = /react|code|develop|full.?stack|program/.test(t) ? "development"
+    : /design|figma|photo|video/.test(t) ? "design"
+    : /gam/.test(t) ? "gaming" : /office|excel|study/.test(t) ? "office" : "";
+  return { maxPrice, useCase, query: "" };
+}
+
+let session = null;
+let download = null;
+const SYSTEM = "Extract laptop shopping criteria. maxPrice is in Indian rupees as a plain number. useCase is one of development, design, gaming, office, or empty. query is a brand or keyword only if the user named one, else empty.";
+const createSession = monitor => LanguageModel.create({ initialPrompts: [{ role: "system", content: SYSTEM }], monitor });
+
+function startDownload() {
+  download ??= createSession(m => m.addEventListener("downloadprogress", ev => {
+    const pct = Math.round(ev.loaded * 100);
+    log(`⬇️ Gemini Nano download: ${pct}%`);
+  })).then(s => { session = s; log("✅ Gemini Nano is ready"); }).catch(err => { download = null; log(`⚠️ Model download failed: ${err.message}`); });
+}
+
+$("#ask").addEventListener("submit", async e => {
+  e.preventDefault();
+  const text = $("#askText").value;
+  let raw, via;
+  try {
+    if (!("LanguageModel" in self)) throw new Error("Prompt API not available");
+    const a = await LanguageModel.availability();
+    if (a === "unavailable") throw new Error("model unavailable on this device");
+    if (a !== "available" && !session) {
+      startDownload();
+      throw new Error(`model ${a}, using the fallback until it is ready`);
+    }
+    askHint.textContent = "Asking the on-device model…";
+    session ??= await createSession();
+    raw = JSON.parse(await session.prompt(text, { responseConstraint: CRITERIA }));
+    via = "Built-in AI (Gemini Nano)";
+  } catch (err) {
+    raw = fallbackParse(text);
+    via = `fallback parser (${err.message})`;
+  }
+  const c = validate(raw);
+  log(`🧠 ${via}\n${JSON.stringify(raw)} → validated ${JSON.stringify(c)}`);
+  askHint.textContent = `Understood via ${via}: max ${c.maxPrice ? inr(c.maxPrice) : "any"}, use ${c.useCase || "any"}`;
+  const f = $("#search");
+  f.query.value = c.query; f.maxPrice.value = c.maxPrice; f.useCase.value = c.useCase;
+  render(search(c));
+});
+
+render(CATALOG.slice().sort((a, b) => a.price - b.price));
+renderCart();
+</script>
+</body>
+</html>
